@@ -1,0 +1,62 @@
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+#include <DFRobot_ENS160.h>
+#include "SdsDustSensor.h"
+#include <ArduinoJson.h>
+
+#define STASSID "Quoc Quy 5Ghz"
+#define STAPSK "99999999"
+#define SERVER_IP "104.43.95.53"
+#define TOKEN "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI1cGwtMWdBMHEwV1REU0xqMU01ckdnWDBBbWxETHVZb0xMeG1ILUUwZFNVIn0.eyJleHAiOjE3MTUwMjY4ODUsImlhdCI6MTcxNDk2Njg4NSwiYXV0aF90aW1lIjoxNzE0OTY0MTI2LCJqdGkiOiI0M2NjOWI2OS1iY2JjLTRiZTctOTNhNi1mOTdmM2M2MjE2YzUiLCJpc3MiOiJodHRwczovLzEwNC40My45NS41My9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOlsibWFzdGVyLXJlYWxtIiwiYWNjb3VudCJdLCJzdWIiOiJhYmE4YjhkMy0yY2E3LTQ3OGYtOGJjMy0wMzc1YWJhZDFlYzQiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJvcGVucmVtb3RlIiwic2Vzc2lvbl9zdGF0ZSI6ImEyNTI2Yjk0LTYzOTgtNDgwYy1iNmE4LWRiZWQ5MTQ3MTU1ZCIsImFjciI6IjAiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cHM6Ly8xMDQuNDMuOTUuNTMiLCJodHRwczovL3Rlc3QubG9jYWwiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbImNyZWF0ZS1yZWFsbSIsImRlZmF1bHQtcm9sZXMtbWFzdGVyIiwib2ZmbGluZV9hY2Nlc3MiLCJhZG1pbiIsInVtYV9hdXRob3JpemF0aW9uIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsib3BlbnJlbW90ZSI6eyJyb2xlcyI6WyJ3cml0ZTpsb2dzIiwid3JpdGU6YXNzZXRzIiwicmVhZCIsIndyaXRlOmFkbWluIiwicmVhZDpsb2dzIiwicmVhZDptYXAiLCJyZWFkOmFzc2V0cyIsIndyaXRlOnVzZXIiLCJyZWFkOnVzZXJzIiwid3JpdGU6cnVsZXMiLCJyZWFkOnJ1bGVzIiwicmVhZDppbnNpZ2h0cyIsIndyaXRlOmF0dHJpYnV0ZXMiLCJ3cml0ZSIsIndyaXRlOmluc2lnaHRzIiwicmVhZDphZG1pbiJdfSwibWFzdGVyLXJlYWxtIjp7InJvbGVzIjpbInZpZXctcmVhbG0iLCJ2aWV3LWlkZW50aXR5LXByb3ZpZGVycyIsIm1hbmFnZS1pZGVudGl0eS1wcm92aWRlcnMiLCJpbXBlcnNvbmF0aW9uIiwiY3JlYXRlLWNsaWVudCIsIm1hbmFnZS11c2VycyIsInF1ZXJ5LXJlYWxtcyIsInZpZXctYXV0aG9yaXphdGlvbiIsInF1ZXJ5LWNsaWVudHMiLCJxdWVyeS11c2VycyIsIm1hbmFnZS1ldmVudHMiLCJtYW5hZ2UtcmVhbG0iLCJ2aWV3LWV2ZW50cyIsInZpZXctdXNlcnMiLCJ2aWV3LWNsaWVudHMiLCJtYW5hZ2UtYXV0aG9yaXphdGlvbiIsIm1hbmFnZS1jbGllbnRzIiwicXVlcnktZ3JvdXBzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6Im9wZW5pZCBlbWFpbCBwcm9maWxlIiwic2lkIjoiYTI1MjZiOTQtNjM5OC00ODBjLWI2YTgtZGJlZDkxNDcxNTVkIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJuYW1lIjoiU3lzdGVtIEFkbWluaXN0cmF0b3IiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJhZG1pbiIsImdpdmVuX25hbWUiOiJTeXN0ZW0iLCJmYW1pbHlfbmFtZSI6IkFkbWluaXN0cmF0b3IifQ.T837s99U1HobrXhBr_J0jX1J8-nyFNXUAuAtS5-oUWbT3rhdfuCcORM4DOtn4AH9PxtdMIYeBgXPhCnFGih-Jx_zU4vKE2Tehd26JWTWG3K7LDtr4Jvlo0JHiprgc4EPx2TzZVIYGrc6eYV9m9nGk72NqD5EIFT9Dp4eDBCmSuTiopFeNpUM7m3tnlsJZon210QK8M9uFfx6-CHae3kjl8LjQ6goh7Js5LWZBPkYps1fNJB8XGJpCm7UR3O7HI6ohwp251gDw1DqC741OB_2ZE8jXt1vJ98uQxURJrycT87uPAr8PiCUNPSLw5W3D2eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI1cGwtMWdBMHEwV1REU0xqMU01ckdnWDBBbWxETHVZb0xMeG1ILUUwZFNVIn0.eyJleHAiOjE3MTUwMjk4MTgsImlhdCI6MTcxNDk2OTgxOCwianRpIjoiY2Q2NDQ1OGUtOTM0OC00YzYyLTk4NWQtYjI1NDhhOGJlYWFiIiwiaXNzIjoiaHR0cHM6Ly8xMDQuNDMuOTUuNTMvYXV0aC9yZWFsbXMvbWFzdGVyIiwiYXVkIjpbIm9wZW5yZW1vdGUiLCJtYXN0ZXItcmVhbG0iXSwic3ViIjoiNDIzZmUwNWUtMDI3Yi00YjJiLWI3OGItZDI2ODc5MDE4YjYzIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoidWlvdCIsInNlc3Npb25fc3RhdGUiOiI3NGExOWQyNC1kN2I2LTQxZjYtYWM3Yi02ZmJlYmM1NjgzZDYiLCJhY3IiOiIxIiwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbImNyZWF0ZS1yZWFsbSIsImFkbWluIiwicmVzdHJpY3RlZF91c2VyIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsib3BlbnJlbW90ZSI6eyJyb2xlcyI6WyJ3cml0ZTpsb2dzIiwid3JpdGU6YXNzZXRzIiwicmVhZCIsIndyaXRlOmFkbWluIiwicmVhZDpsb2dzIiwicmVhZDptYXAiLCJyZWFkOmFzc2V0cyIsIndyaXRlOnVzZXIiLCJyZWFkOnVzZXJzIiwid3JpdGU6cnVsZXMiLCJyZWFkOnJ1bGVzIiwicmVhZDppbnNpZ2h0cyIsIndyaXRlOmF0dHJpYnV0ZXMiLCJ3cml0ZSIsIndyaXRlOmluc2lnaHRzIiwicmVhZDphZG1pbiJdfSwibWFzdGVyLXJlYWxtIjp7InJvbGVzIjpbInZpZXctcmVhbG0iLCJ2aWV3LWlkZW50aXR5LXByb3ZpZGVycyIsIm1hbmFnZS1pZGVudGl0eS1wcm92aWRlcnMiLCJpbXBlcnNvbmF0aW9uIiwiY3JlYXRlLWNsaWVudCIsIm1hbmFnZS11c2VycyIsInF1ZXJ5LXJlYWxtcyIsInZpZXctYXV0aG9yaXphdGlvbiIsInF1ZXJ5LWNsaWVudHMiLCJxdWVyeS11c2VycyIsIm1hbmFnZS1ldmVudHMiLCJtYW5hZ2UtcmVhbG0iLCJ2aWV3LWV2ZW50cyIsInZpZXctdXNlcnMiLCJ2aWV3LWNsaWVudHMiLCJtYW5hZ2UtYXV0aG9yaXphdGlvbiIsIm1hbmFnZS1jbGllbnRzIiwicXVlcnktZ3JvdXBzIl19fSwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwic2lkIjoiNzRhMTlkMjQtZDdiNi00MWY2LWFjN2ItNmZiZWJjNTY4M2Q2IiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJjbGllbnRIb3N0IjoiMTE4LjY4LjIwMi4yNTAiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJzZXJ2aWNlLWFjY291bnQtdWlvdCIsImNsaWVudEFkZHJlc3MiOiIxMTguNjguMjAyLjI1MCIsImNsaWVudF9pZCI6InVpb3QifQ.v94wQpfE5S-lENSNIditeCXEQYyXaU9yQGydknYRiY3P3_H1alKeyyhAsBbN-j2yZ5ceB7dB7J9yh3UceIg4nXWisV2kSj0RaVgaiqbD2yEJa-GcBs2eiFBMW4_Gfw4VGoxnXswt"
+
+DFRobot_ENS160_I2C ENS160(&Wire, 0x53);
+SdsDustSensor sds(14, 12);
+
+void setup() {
+  Serial.begin(9600);
+  WiFi.begin(STASSID, STAPSK);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("WiFi connected.");
+  } else {
+    Serial.println("WiFi connection failed.");
+    // Không tiếp tục thực hiện các thao tác khác nếu kết nối WiFi thất bại
+    return;
+  }
+}
+
+void sendData(HTTPClient &http, WiFiClientSecure &client, String attribute, String payLoad){
+  String api = "https://104.43.95.53/api/master/asset/6SSoa1kKCa6f9L27XNH0P9/attribute/"+attribute;
+  http.begin(client, api);
+  http.addHeader("accept", "application/json");
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Authorization", TOKEN);
+  int httpCode = http.PUT(payLoad);
+  if (httpCode > 0) {
+    Serial.print("[HTTP] POST SUCCESS! ");
+    Serial.println(httpCode);
+  } else {
+    Serial.println("[HTTP] POST FAIL! ");
+    Serial.println(http.errorToString(httpCode).c_str());
+  }
+  http.end();
+}
+
+void loop() {
+  uint16_t ECO2 = ENS160.getECO2();
+  PmResult pm = sds.readPm();
+
+  if ((WiFi.status() == WL_CONNECTED)) {
+    WiFiClientSecure client;
+    HTTPClient http;
+    client.setInsecure();
+    
+    sendData(http, client, "CO2", String(ECO2));
+    sendData(http, client, "PM25", String(pm.pm25));
+    sendData(http, client, "PM10", String(pm.pm10));
+  }
+  delay(10000);
+}
